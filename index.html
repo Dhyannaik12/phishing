@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aegis Shield - AI Phishing Detection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles for the cybersecurity theme and animations */
+        :root {
+            --bg-color: #0a0a1a;
+            --primary-glow: #00ffff;
+            --secondary-glow: #ff00ff;
+            --safe-color: #00ff8a;
+            --warn-color: #ffd700;
+            --danger-color: #ff4d4d;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: #e0e0e0;
+            font-family: 'Roboto', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Animated background */
+        #main-container {
+            position: relative;
+            background: 
+                linear-gradient(rgba(10, 10, 26, 0.97), rgba(10, 10, 26, 0.97)),
+                url('https://www.transparenttextures.com/patterns/hexellence.png');
+            overflow: hidden;
+        }
+
+        canvas#matrix-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.2;
+        }
+
+        .content-wrapper {
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Glassmorphism effect for cards */
+        .glass-card {
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 1rem;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
+        }
+
+        /* Animated glowing button */
+        .glow-btn {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 5px var(--primary-glow), 0 0 15px var(--primary-glow);
+        }
+        .glow-btn:hover {
+            box-shadow: 0 0 10px var(--primary-glow), 0 0 30px var(--primary-glow), 0 0 50px var(--primary-glow);
+            transform: scale(1.05);
+        }
+
+        /* Input field styling */
+        .cyber-input {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--primary-glow);
+            color: var(--primary-glow);
+            transition: all 0.3s ease;
+            box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+        .cyber-input::placeholder {
+            color: rgba(0, 255, 255, 0.4);
+        }
+        .cyber-input:focus {
+            outline: none;
+            box-shadow: inset 0 0 15px rgba(0, 255, 255, 0.7), 0 0 10px var(--primary-glow);
+        }
+
+        /* Analysis animation styling */
+        .analysis-step {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Spinner for loading state */
+        .loader {
+            border: 4px solid rgba(0, 255, 255, 0.2);
+            border-left-color: var(--primary-glow);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Result card animation */
+        .result-card {
+            animation: popIn 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            transform: scale(0.5);
+            opacity: 0;
+        }
+        @keyframes popIn {
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        /* Typing effect for titles */
+        .typing-effect {
+            border-right: .15em solid var(--primary-glow);
+            white-space: nowrap;
+            overflow: hidden;
+            letter-spacing: .1em;
+            animation: typing 3s steps(30, end), blink-caret .75s step-end infinite;
+        }
+
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: var(--primary-glow); }
+        }
+        
+        /* Live feed animation */
+        .feed-item {
+            animation: slideInLeft 0.5s ease-out;
+        }
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div id="main-container" class="min-h-screen w-full">
+        <canvas id="matrix-bg"></canvas>
+
+        <div class="content-wrapper p-4 sm:p-6 lg:p-8">
+            <!-- Header -->
+            <header class="flex justify-between items-center mb-12">
+                <h1 class="text-2xl md:text-3xl font-orbitron text-cyan-300 tracking-widest">
+                    <span class="text-white">AEGIS</span>SHIELD
+                </h1>
+                <nav class="hidden md:flex space-x-8 text-lg">
+                    <a href="#" class="hover:text-cyan-300 transition-colors">Dashboard</a>
+                    <a href="#" class="hover:text-cyan-300 transition-colors">API</a>
+                    <a href="#" class="hover:text-cyan-300 transition-colors">About</a>
+                </nav>
+            </header>
+
+            <main class="container mx-auto">
+                <!-- Hero Section -->
+                <section class="text-center mb-16">
+                    <h2 class="text-4xl md:text-6xl font-orbitron font-bold mb-4 text-white uppercase tracking-wider">
+                        Real-Time Phishing Defense
+                    </h2>
+                    <p class="text-lg md:text-xl max-w-3xl mx-auto text-gray-300 typing-effect">AI-Powered URL Analysis for Ultimate Security.</p>
+                </section>
+
+                <!-- URL Scanner Section -->
+                <section id="scanner-section" class="max-w-3xl mx-auto mb-16">
+                    <div class="glass-card p-6 md:p-8">
+                        <div id="input-container">
+                            <label for="url-input" class="block text-xl font-semibold mb-4 text-cyan-300">Enter a URL to analyze</label>
+                            <div class="flex flex-col sm:flex-row gap-4">
+                                <input type="text" id="url-input" class="cyber-input flex-grow w-full px-4 py-3 rounded-lg text-lg" placeholder="https://example.com">
+                                <button id="analyze-btn" class="glow-btn bg-cyan-500 text-black font-bold px-8 py-3 rounded-lg text-lg transition-transform">
+                                    SCAN
+                                </button>
+                            </div>
+                             <p id="error-message" class="text-red-400 mt-2 text-sm hidden"></p>
+                        </div>
+
+                        <!-- Analysis Simulation Area -->
+                        <div id="analysis-container" class="hidden">
+                            <h3 class="text-2xl font-orbitron text-center mb-6">Contacting AI Analysis Core...</h3>
+                            <div class="loader"></div>
+                            <p class="text-center text-gray-400">Querying Gemini for deep analysis...</p>
+                        </div>
+
+                        <!-- Result Display Area -->
+                        <div id="result-container" class="hidden text-center mt-6"></div>
+                    </div>
+                </section>
+                
+                <!-- Features and Live Feed -->
+                <section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Features -->
+                    <div class="lg:col-span-2 glass-card p-6">
+                        <h3 class="font-orbitron text-2xl mb-4 border-b border-cyan-500/30 pb-2 text-white">System Capabilities</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="feature-item p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                                <h4 class="text-lg font-bold text-cyan-300">Generative AI Analysis</h4>
+                                <p class="text-sm text-gray-400">Leverages the Gemini model to analyze URL structure and phishing patterns.</p>
+                            </div>
+                            <div class="feature-item p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                                <h4 class="text-lg font-bold text-cyan-300">Heuristic Engine</h4>
+                                <p class="text-sm text-gray-400">Rule-based checks for common phishing patterns and keyword triggers.</p>
+                            </div>
+                            <div class="feature-item p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                                <h4 class="text-lg font-bold text-cyan-300">Global Threat Database</h4>
+                                <p class="text-sm text-gray-400">Cross-references against a continuously updated list of known malicious domains.</p>
+                            </div>
+                             <div class="feature-item p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                                <h4 class="text-lg font-bold text-cyan-300">Behavioral Anomaly Detection</h4>
+                                <p class="text-sm text-gray-400">Identifies suspicious redirect chains and unusual server behavior.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Live Threat Feed -->
+                    <div class="lg:col-span-1 glass-card p-6">
+                         <h3 class="font-orbitron text-2xl mb-4 border-b border-cyan-500/30 pb-2 text-white">Live Threat Feed</h3>
+                         <div id="threat-feed" class="space-y-3 h-64 overflow-y-auto pr-2">
+                            <!-- Feed items will be injected here by JS -->
+                         </div>
+                    </div>
+                </section>
+            </main>
+
+            <!-- Footer -->
+            <footer class="text-center mt-16 py-4 text-gray-500 border-t border-gray-800">
+                <p>&copy; 2025 Aegis Shield. Securing the Digital Frontier.</p>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Matrix background effect
+            const canvas = document.getElementById('matrix-bg');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()*&^%+-/~{[|`]}';
+            const fontSize = 16;
+            const columns = canvas.width / fontSize;
+            const drops = Array(Math.floor(columns)).fill(1);
+
+            function drawMatrix() {
+                ctx.fillStyle = 'rgba(10, 10, 26, 0.05)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'rgba(0, 255, 255, 0.7)';
+                ctx.font = `${fontSize}px monospace`;
+                for (let i = 0; i < drops.length; i++) {
+                    const text = letters[Math.floor(Math.random() * letters.length)];
+                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                        drops[i] = 0;
+                    }
+                    drops[i]++;
+                }
+            }
+            let matrixInterval = setInterval(drawMatrix, 40);
+
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                drops.length = Math.floor(canvas.width / fontSize);
+                for(let i=0; i<drops.length; i++) drops[i] = 1;
+            });
+            
+
+            // URL Analysis Logic
+            const analyzeBtn = document.getElementById('analyze-btn');
+            const urlInput = document.getElementById('url-input');
+            const inputContainer = document.getElementById('input-container');
+            const analysisContainer = document.getElementById('analysis-container');
+            const resultContainer = document.getElementById('result-container');
+            const errorMessage = document.getElementById('error-message');
+            
+            // This endpoint now points to our Node.js server
+            const API_ENDPOINT = '/api/analyze'; 
+
+            analyzeBtn.addEventListener('click', startAnalysis);
+            urlInput.addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') {
+                    startAnalysis();
+                }
+            });
+
+            async function startAnalysis() {
+                const url = urlInput.value.trim();
+                if (!url) {
+                    errorMessage.textContent = 'Please enter a URL to analyze.';
+                    errorMessage.classList.remove('hidden');
+                    return;
+                }
+                
+                // Reset UI
+                errorMessage.classList.add('hidden');
+                inputContainer.classList.add('hidden');
+                resultContainer.innerHTML = '';
+                resultContainer.classList.add('hidden');
+                analysisContainer.classList.remove('hidden');
+
+                try {
+                    // Calling our own Node.js backend
+                    const response = await fetch(API_ENDPOINT, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ url: url }),
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        // Display server-side errors on the frontend
+                        throw new Error(data.message || `Server responded with status: ${response.status}`);
+                    }
+
+                    displayResult(url, data);
+
+                } catch (error) {
+                    console.error('Analysis Error:', error);
+                    // Handle network errors or failed requests
+                    displayResult(url, { 
+                        status: 'Error', 
+                        score: 'N/A', 
+                        message: error.message || 'Could not connect to the analysis server.'
+                    });
+                }
+            }
+
+            function displayResult(url, data) {
+                analysisContainer.classList.add('hidden');
+                
+                let result_ui = {};
+                let displayScore = (typeof data.score === 'number') ? `${data.score}%` : 'N/A';
+
+                switch (data.status) {
+                    case 'Suspicious':
+                        result_ui = {
+                            color: 'var(--warn-color)',
+                            textColor: 'text-yellow-300',
+                            bgColor: 'bg-yellow-500/10',
+                            borderColor: 'border-yellow-400',
+                        };
+                        break;
+                    case 'PHISHING DETECTED':
+                         result_ui = {
+                            color: 'var(--danger-color)',
+                            textColor: 'text-red-300',
+                            bgColor: 'bg-red-500/10',
+                            borderColor: 'border-red-400',
+                        };
+                        break;
+                    case 'Error':
+                        result_ui = {
+                            color: 'var(--danger-color)',
+                            textColor: 'text-red-300',
+                            bgColor: 'bg-red-500/10',
+                            borderColor: 'border-red-400',
+                        };
+                        break;
+                    case 'Safe':
+                    default:
+                        result_ui = {
+                            color: 'var(--safe-color)',
+                            textColor: 'text-green-300',
+                            bgColor: 'bg-green-500/10',
+                            borderColor: 'border-green-400',
+                        };
+                        break;
+                }
+
+                resultContainer.innerHTML = `
+                    <div class="result-card p-6 rounded-lg border ${result_ui.borderColor} ${result_ui.bgColor}">
+                        <h3 class="font-orbitron text-3xl font-bold" style="color: ${result_ui.color}; text-shadow: 0 0 10px ${result_ui.color};">${data.status}</h3>
+                        <p class="text-xl my-4 ${result_ui.textColor}">Confidence Score: ${displayScore}</p>
+                        <p class="text-gray-300 max-w-md mx-auto">${data.message}</p>
+                        <p class="text-sm text-gray-500 mt-4 break-words">Analyzed: ${url}</p>
+                         <button id="scan-again-btn" class="mt-6 bg-gray-600 hover:bg-gray-500 text-white font-bold px-6 py-2 rounded-lg transition-colors">Scan Another URL</button>
+                    </div>
+                `;
+                resultContainer.classList.remove('hidden');
+
+                document.getElementById('scan-again-btn').addEventListener('click', () => {
+                    resultContainer.classList.add('hidden');
+                    inputContainer.classList.remove('hidden');
+                    urlInput.value = '';
+                });
+            }
+
+            // Live Threat Feed Logic (no changes needed here)
+            const threatFeed = document.getElementById('threat-feed');
+            const threats = [
+                { type: 'Phishing', target: 'finance-login.com' },
+                { type: 'Malware', target: 'get-free-software.net' },
+                { type: 'Scam', target: 'claim-your-prize.org' },
+                { type: 'Botnet', target: '192.168.1.10/bot.php' },
+                { type: 'Spyware', target: 'track-user-activity.biz' }
+            ];
+
+            function addThreatToFeed() {
+                if(document.hidden) return; 
+
+                const threat = threats[Math.floor(Math.random() * threats.length)];
+                const colors = {
+                    'Phishing': 'text-red-400',
+                    'Malware': 'text-purple-400',
+                    'Scam': 'text-yellow-400',
+                    'Botnet': 'text-orange-400',
+                    'Spyware': 'text-indigo-400'
+                };
+                
+                const feedItem = document.createElement('div');
+                feedItem.className = 'feed-item text-sm p-2 bg-slate-800/60 rounded-md border-l-4 border-cyan-500';
+                feedItem.innerHTML = `
+                    <div>
+                        <span class="font-bold ${colors[threat.type]}">[${threat.type}]</span> Detected
+                    </div>
+                    <div class="text-xs text-gray-400 truncate">${threat.target}</div>
+                `;
+
+                threatFeed.prepend(feedItem);
+
+                if (threatFeed.children.length > 10) {
+                    threatFeed.lastChild.remove();
+                }
+            }
+            
+            for(let i=0; i<5; i++) {
+                addThreatToFeed();
+            }
+            setInterval(addThreatToFeed, 3000);
+        });
+    </script>
+</body>
+</html>
+
